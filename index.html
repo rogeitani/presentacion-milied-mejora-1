@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Propuesta de Mejora Operativa — Planificación de la Producción</title>
+
+  <!-- Tipografías editoriales: Cormorant Garamond (Serif) + Plus Jakarta Sans (Sans-Serif) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['"Cormorant Garamond"', 'Georgia', 'serif'],
+            sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    /* =========================================================
+       DESIGN TOKENS: PALETA EDITORIAL CÁLIDA + MODO NOCTURNO
+       ========================================================= */
+    :root {
+      --bg-main: #F7F4EE;           /* Tahini / Piedra caliza */
+      --bg-surface: #EFEAE0;        /* Marfil suave */
+      --bg-card: #FAF8F4;           /* Crema sutil para contraste ligero */
+      --brand: #1F3A2E;             /* Cedro profundo */
+      --accent: #7A232D;            /* Granada / Zumaque */
+      --warm: #B88A3B;              /* Aceite de oliva / Latón */
+      --text-main: #1E2421;         /* Carbón orgánico */
+      --text-muted: #525B56;        /* Carbón suave */
+      --border-hairline: rgba(31, 58, 46, 0.14);
+      --border-strong: rgba(31, 58, 46, 0.28);
+      --nav-bg: rgba(247, 244, 238, 0.90);
+    }
+
+    html.dark-theme {
+      --bg-main: #12211A;           /* Verde bosque nocturno */
+      --bg-surface: #192B22;        /* Tarjetas fine dining */
+      --bg-card: #16261E;           /* Superficie elevada */
+      --brand: #F4EFE6;             /* Marfil claro para encabezados */
+      --accent: #C74957;            /* Granada luminosa para contraste */
+      --warm: #C99E4C;              /* Oro suave */
+      --text-main: #F4EFE6;         /* Texto claro cálido */
+      --text-muted: #B6C2BC;        /* Texto secundario */
+      --border-hairline: rgba(244, 239, 230, 0.14);
+      --border-strong: rgba(201, 158, 76, 0.35);
+      --nav-bg: rgba(18, 33, 26, 0.90);
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      transition: background-color 0.35s ease, color 0.35s ease;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .font-editorial {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+    }
+
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Utilidades de color vinculadas a variables CSS */
+    .bg-main { background-color: var(--bg-main); }
+    .bg-surface { background-color: var(--bg-surface); }
+    .bg-card { background-color: var(--bg-card); }
+    .text-brand { color: var(--brand); }
+    .text-accent { color: var(--accent); }
+    .text-warm { color: var(--warm); }
+    .text-main { color: var(--text-main); }
+    .text-muted { color: var(--text-muted); }
+    .border-hairline { border-color: var(--border-hairline); }
+    .border-strong { border-color: var(--border-strong); }
+
+    .nav-glass {
+      background-color: var(--nav-bg);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    /* Animaciones sutiles al hacer scroll */
+    .reveal {
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+                  transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .reveal.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Transición suave para barras de datos */
+    .bar-fill {
+      transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* Botón de escenario activo */
+    .scenario-btn[aria-pressed="true"] {
+      background-color: var(--brand);
+      color: var(--bg-main);
+      border-color: var(--brand);
+    }
+    .scenario-btn[aria-pressed="false"] {
+      background-color: transparent;
+      color: var(--text-muted);
+      border-color: var(--border-hairline);
+    }
+
+    /* Sliders editoriales para la calculadora */
+    input[type="range"].editorial-range {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--border-hairline);
+      outline: none;
+    }
+    input[type="range"].editorial-range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--brand);
+      border: 2px solid var(--bg-main);
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+      transition: transform 0.15s ease;
+    }
+    input[type="range"].editorial-range::-webkit-slider-thumb:hover {
+      transform: scale(1.12);
+    }
+    input[type="range"].editorial-range::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--brand);
+      border: 2px solid var(--bg-main);
+      cursor: pointer;
+    }
+
+    /* Estilos limpios para impresión / guardar en PDF */
+    @media print {
+      nav, #themeToggleBtn, .no-print { display: none !important; }
+      .reveal { opacity: 1 !important; transform: none !important; }
+      body { background: #F7F4EE !important; color: #1E2421 !important; }
+    }
+  </style>
+</head>
+<body class="selection:bg-[#B88A3B]/20 text-base sm:text-lg">
+
+  <!-- =========================================================
+       NAVEGACIÓN SUPERIOR MINIMALISTA
+       ========================================================= -->
+  <nav class="sticky top-0 z-50 nav-glass border-b border-hairline">
+    <div class="max-w-5xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between gap-4">
+      <a href="#inicio" class="flex items-center gap-3 group">
+        <span class="w-2.5 h-2.5 rounded-full" style="background-color: var(--warm);"></span>
+        <span class="font-editorial text-2xl sm:text-3xl font-semibold tracking-tight text-brand">
+          Propuesta de Mejora
+        </span>
+      </a>
+
+      <!-- Enlaces de navegación en escritorio -->
+      <div class="hidden md:flex items-center gap-7 text-sm font-medium uppercase tracking-wider text-muted">
+        <a href="#metodo" class="hover:text-brand transition-colors">Plan DMAIC</a>
+        <a href="#impacto" class="hover:text-brand transition-colors">Calculadora</a>
+        <a href="#cronograma" class="hover:text-brand transition-colors">Plazos</a>
+        <a href="#inversion" class="hover:text-brand transition-colors">Pagos</a>
+      </div>
+
+      <!-- Selector discreto de tema (Día / Nocturno) -->
+      <button
+        id="themeToggleBtn"
+        type="button"
+        aria-label="Cambiar modo de color"
+        class="no-print text-sm font-medium px-3.5 py-2 rounded-lg border border-hairline text-muted hover:text-brand transition-colors flex items-center gap-2"
+      >
+        <span id="themeIcon" aria-hidden="true">◐</span>
+        <span id="themeLabel" class="hidden sm:inline">Modo nocturno</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- =========================================================
+       PORTADA / HERO EDITORIAL (ALTO IMPACTO, POCO TEXTO)
+       ========================================================= -->
+  <header id="inicio" class="max-w-5xl mx-auto px-5 sm:px-8 pt-14 pb-16 sm:pt-20 sm:pb-24 border-b border-hairline">
+    <div class="reveal">
+      <div class="flex flex-wrap items-center gap-3 text-sm font-semibold uppercase tracking-[0.16em] text-warm mb-5">
+        <span>Propuesta Ejecutiva</span>
+        <span aria-hidden="true">•</span>
+        <span>Sr. Milled</span>
+      </div>
+
+      <h1 class="font-editorial text-5xl sm:text-7xl font-semibold leading-[1.03] tracking-tight text-brand max-w-4xl">
+        Planificación de la Producción
+      </h1>
+
+      <p class="mt-6 text-xl sm:text-2xl text-muted leading-snug max-w-2xl">
+        Pasar de producir un <strong class="text-accent font-semibold">20% de más</strong> a un margen sano del
+        <strong class="text-brand font-semibold">2% al 3%</strong>, con su equipo y cocina actuales.
+      </p>
+
+      <!-- 3 cifras de impacto inmediato -->
+      <div class="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-5">
+        <div class="bg-surface rounded-xl p-7 border border-hairline">
+          <p class="text-sm font-semibold uppercase tracking-wider text-muted">Excedente actual</p>
+          <p class="mt-2 font-editorial text-6xl font-semibold text-accent tabular-nums">~20%</p>
+          <p class="mt-2 text-base text-muted">1.000 pedidos → 1.200 hechos</p>
+        </div>
+
+        <div class="bg-surface rounded-xl p-7 border border-hairline">
+          <p class="text-sm font-semibold uppercase tracking-wider text-muted">Meta objetivo</p>
+          <p class="mt-2 font-editorial text-6xl font-semibold text-brand tabular-nums">2–3%</p>
+          <p class="mt-2 text-base text-muted">Respaldo seguro, sin pérdidas</p>
+        </div>
+
+        <div class="bg-surface rounded-xl p-7 border border-hairline">
+          <p class="text-sm font-semibold uppercase tracking-wider text-muted">Compra de equipos</p>
+          <p class="mt-2 font-editorial text-6xl font-semibold text-warm tabular-nums">$0</p>
+          <p class="mt-2 text-base text-muted">Mejoras prácticas sin gasto extra</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-5 sm:px-8">
+
+    <!-- =========================================================
+         SECCIÓN 1: LAS 5 ETAPAS DEL DMAIC (DIRECTO AL GRANO)
+         ========================================================= -->
+    <section id="metodo" class="py-16 sm:py-20 border-b border-hairline">
+      <div class="reveal mb-10">
+        <p class="text-sm font-semibold uppercase tracking-[0.16em] text-warm mb-3">01 / Cómo Trabajaremos</p>
+        <h2 class="font-editorial text-4xl sm:text-5xl font-semibold text-brand leading-tight">
+          5 pasos prácticos (Método DMAIC)
+        </h2>
+      </div>
+
+      <!-- 5 Tarjetas concisas y de lectura rápida -->
+      <div class="reveal grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div class="bg-card rounded-xl p-6 border border-hairline flex flex-col justify-between">
+          <div>
+            <span class="font-editorial text-4xl font-semibold text-accent tabular-nums">01</span>
+            <h3 class="mt-2 font-editorial text-3xl font-semibold text-brand">Definir</h3>
+            <p class="mt-3 text-base text-muted leading-snug">
+              Acordar la meta (2%–3%) y el equipo clave sin frenar la cocina.
+            </p>
+          </div>
+          <p class="mt-5 pt-3 border-t border-hairline text-xs font-semibold uppercase tracking-wider text-warm">
+            Reglas claras
+          </p>
+        </div>
+
+        <div class="bg-card rounded-xl p-6 border border-hairline flex flex-col justify-between">
+          <div>
+            <span class="font-editorial text-4xl font-semibold text-accent tabular-nums">02</span>
+            <h3 class="mt-2 font-editorial text-3xl font-semibold text-brand">Medir</h3>
+            <p class="mt-3 text-base text-muted leading-snug">
+              Sacar números reales: cuánto se pide, se cocina y se pierde hoy.
+            </p>
+          </div>
+          <p class="mt-5 pt-3 border-t border-hairline text-xs font-semibold uppercase tracking-wider text-warm">
+            Datos exactos
+          </p>
+        </div>
+
+        <div class="bg-card rounded-xl p-6 border border-hairline flex flex-col justify-between">
+          <div>
+            <span class="font-editorial text-4xl font-semibold text-accent tabular-nums">03</span>
+            <h3 class="mt-2 font-editorial text-3xl font-semibold text-brand">Analizar</h3>
+            <p class="mt-3 text-base text-muted leading-snug">
+              Encontrar la causa real por la que se cocina de más cada día.
+            </p>
+          </div>
+          <p class="mt-5 pt-3 border-t border-hairline text-xs font-semibold uppercase tracking-wider text-warm">
+            Atacar la raíz
+          </p>
+        </div>
+
+        <div class="bg-card rounded-xl p-6 border border-hairline flex flex-col justify-between">
+          <div>
+            <span class="font-editorial text-4xl font-semibold text-accent tabular-nums">04</span>
+            <h3 class="mt-2 font-editorial text-3xl font-semibold text-brand">Mejorar</h3>
+            <p class="mt-3 text-base text-muted leading-snug">
+              Diseñar y planificar soluciones simples que no cuesten dinero.
+            </p>
+          </div>
+          <p class="mt-5 pt-3 border-t border-hairline text-xs font-semibold uppercase tracking-wider text-warm">
+            Cero gastos extra
+          </p>
+        </div>
+
+        <div class="bg-card rounded-xl p-6 border border-hairline flex flex-col justify-between sm:col-span-2 lg:col-span-1">
+          <div>
+            <span class="font-editorial text-4xl font-semibold text-accent tabular-nums">05</span>
+            <h3 class="mt-2 font-editorial text-3xl font-semibold text-brand">Controlar</h3>
+            <p class="mt-3 text-base text-muted leading-snug">
+              Dejar controles claros para no volver a las malas prácticas.
+            </p>
+          </div>
+          <p class="mt-5 pt-3 border-t border-hairline text-xs font-semibold uppercase tracking-wider text-warm">
+            Ahorro permanente
+          </p>
+        </div>
+      </div>
+
+      <!-- Roles claros en 2 bloques cortos -->
+      <div class="reveal mt-8 bg-surface rounded-xl p-7 border border-hairline grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <p class="text-sm font-semibold uppercase tracking-wider text-warm mb-2">Mi trabajo desde el día 1</p>
+          <p class="text-base sm:text-lg text-main leading-snug">
+            Detectar en números las fugas de dinero, diseñar mejoras sin costo y crear los controles.
+          </p>
+        </div>
+        <div class="md:border-l md:pl-7 border-hairline">
+          <p class="text-sm font-semibold uppercase tracking-wider text-brand mb-2">Trabajo de su equipo</p>
+          <p class="text-base sm:text-lg text-muted leading-snug">
+            Facilitar los datos y <strong class="text-main">ejecutar en cocina</strong> las mejoras que planifiquemos juntos.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         SECCIÓN 2: DINERO EN JUEGO (CALCULADORA + GRÁFICAS EN VIVO)
+         ========================================================= -->
+    <section id="impacto" class="py-16 sm:py-20 border-b border-hairline">
+      <div class="reveal flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+        <div>
+          <p class="text-sm font-semibold uppercase tracking-[0.16em] text-warm mb-3">02 / Dinero en Juego</p>
+          <h2 class="font-editorial text-4xl sm:text-5xl font-semibold text-brand leading-tight">
+            Calculadora de ahorro estimado
+          </h2>
+          <p class="mt-2 text-lg text-muted tabular-nums">
+            Base: <strong class="text-main">3.000 platos/día</strong> • Lunes a viernes (22 días/mes)
+          </p>
+        </div>
+
+        <!-- Botones rápidos de escenario: Meta 3% vs Meta 8% (Holgada y conservadora) -->
+        <div class="no-print inline-flex flex-wrap rounded-xl p-1.5 bg-surface border border-hairline self-start md:self-auto gap-1" role="group" aria-label="Escenarios rápidos">
+          <button
+            type="button"
+            id="btnMeta3"
+            class="scenario-btn px-4 py-2.5 text-sm font-semibold rounded-lg border transition-all"
+            aria-pressed="true"
+            onclick="applyPreset(3)"
+          >
+            Meta 3% (Óptima)
+          </button>
+          <button
+            type="button"
+            id="btnMeta8"
+            class="scenario-btn px-4 py-2.5 text-sm font-semibold rounded-lg border transition-all"
+            aria-pressed="false"
+            onclick="applyPreset(8)"
+          >
+            Meta 8% (Holgada)
+          </button>
+        </div>
+      </div>
+
+      <!-- Panel interactivo de controles (Costo/plato, % Actual, % Meta) -->
+      <div class="reveal no-print bg-card rounded-xl p-6 sm:p-7 border border-hairline mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <!-- Control 1: Costo por plato -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label for="inputCost" class="text-sm font-semibold uppercase tracking-wider text-muted">
+                Costo por plato (USD)
+              </label>
+              <div class="flex items-center gap-1 bg-surface border border-hairline rounded-lg px-2.5 py-1">
+                <span class="text-base font-bold text-warm">$</span>
+                <input
+                  id="inputCost"
+                  type="number"
+                  min="0.25"
+                  max="50"
+                  step="0.25"
+                  value="2"
+                  class="w-16 bg-transparent text-right font-bold text-lg text-brand tabular-nums focus:outline-none"
+                />
+              </div>
+            </div>
+            <input id="rangeCost" type="range" min="0.5" max="10" step="0.25" value="2" class="editorial-range" />
+            <div class="flex justify-between text-xs text-muted mt-1 tabular-nums">
+              <span>$0,50</span>
+              <span>$5,00</span>
+              <span>$10,00</span>
+            </div>
+          </div>
+
+          <!-- Control 2: % Excedente actual -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label for="inputCurrentPct" class="text-sm font-semibold uppercase tracking-wider text-muted">
+                Excedente hoy (%)
+              </label>
+              <div class="flex items-center gap-1 bg-surface border border-hairline rounded-lg px-2.5 py-1">
+                <input
+                  id="inputCurrentPct"
+                  type="number"
+                  min="1"
+                  max="60"
+                  step="1"
+                  value="20"
+                  class="w-14 bg-transparent text-right font-bold text-lg text-accent tabular-nums focus:outline-none"
+                />
+                <span class="text-base font-bold text-accent">%</span>
+              </div>
+            </div>
+            <input id="rangeCurrentPct" type="range" min="5" max="40" step="1" value="20" class="editorial-range" />
+            <div class="flex justify-between text-xs text-muted mt-1 tabular-nums">
+              <span>5%</span>
+              <span>20%</span>
+              <span>40%</span>
+            </div>
+          </div>
+
+          <!-- Control 3: % Excedente objetivo -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label for="inputTargetPct" class="text-sm font-semibold uppercase tracking-wider text-muted">
+                Meta objetivo (%)
+              </label>
+              <div class="flex items-center gap-1 bg-surface border border-hairline rounded-lg px-2.5 py-1">
+                <input
+                  id="inputTargetPct"
+                  type="number"
+                  min="0"
+                  max="50"
+                  step="0.5"
+                  value="3"
+                  class="w-14 bg-transparent text-right font-bold text-lg text-brand tabular-nums focus:outline-none"
+                />
+                <span class="text-base font-bold text-brand">%</span>
+              </div>
+            </div>
+            <input id="rangeTargetPct" type="range" min="0" max="20" step="0.5" value="3" class="editorial-range" />
+            <div class="flex justify-between text-xs text-muted mt-1 tabular-nums">
+              <span>0%</span>
+              <span>8% (Holgada)</span>
+              <span>20%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Etiqueta dinámica del tipo de escenario -->
+        <div class="mt-5 pt-4 border-t border-hairline flex flex-wrap items-center justify-between gap-2 text-sm">
+          <span id="scenarioBadge" class="font-semibold text-brand">
+            Escenario activo: Meta óptima del 3% — Máxima eficiencia con respaldo seguro.
+          </span>
+          <span id="baseDemandInfo" class="text-muted tabular-nums">
+            Pedidos base estimados: <strong class="text-main">2.500 platos/día</strong>
+          </span>
+        </div>
+      </div>
+
+      <!-- 2 Cifras Gigantes de Ahorro -->
+      <div class="reveal grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div class="bg-surface rounded-xl p-8 border border-hairline">
+          <p class="text-sm font-semibold uppercase tracking-wider text-muted">Ahorro diario estimado</p>
+          <p id="savingDaily" class="mt-3 font-editorial text-6xl sm:text-7xl font-semibold text-accent tabular-nums">
+            $850 <span class="text-2xl font-sans font-normal text-muted">/ día</span>
+          </p>
+          <p id="savingDailyDetail" class="mt-4 pt-4 border-t border-hairline text-base text-muted tabular-nums">
+            <strong class="text-main">425 platos menos</strong> de sobrante cada día.
+          </p>
+        </div>
+
+        <div class="bg-surface rounded-xl p-8 border border-hairline">
+          <p class="text-sm font-semibold uppercase tracking-wider text-muted">Ahorro mensual estimado</p>
+          <p id="savingMonthly" class="mt-3 font-editorial text-6xl sm:text-7xl font-semibold text-brand tabular-nums">
+            $18.700 <span class="text-2xl font-sans font-normal text-muted">/ mes</span>
+          </p>
+          <p id="savingMonthlyDetail" class="mt-4 pt-4 border-t border-hairline text-base text-muted tabular-nums">
+            El costo del excedente baja de <strong class="text-main">$22.000</strong> a <strong class="text-main">$3.300</strong>.
+          </p>
+        </div>
+      </div>
+
+      <!-- 2 Gráficas interactivas en vivo (Diario y Mensual) -->
+      <div class="reveal grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <!-- Gráfica 1: Impacto Diario -->
+        <div class="bg-card rounded-xl p-6 sm:p-7 border border-hairline">
+          <div class="flex items-baseline justify-between mb-5">
+            <h3 class="font-editorial text-2xl sm:text-3xl font-semibold text-brand">Impacto Diario</h3>
+            <span class="text-xs font-semibold uppercase tracking-wider text-warm">USD / día</span>
+          </div>
+
+          <div class="space-y-4">
+            <!-- Barra Hoy -->
+            <div>
+              <div class="flex justify-between text-sm font-medium mb-1.5 tabular-nums">
+                <span class="text-muted">Costo excedente hoy (<span class="lbl-curr-pct">20%</span>)</span>
+                <span id="chartDailyCurrVal" class="font-bold text-accent">$1.000</span>
+              </div>
+              <div class="w-full h-4 rounded-full overflow-hidden" style="background-color: var(--border-hairline);">
+                <div id="chartDailyCurrBar" class="bar-fill h-full rounded-full" style="width: 100%; background-color: var(--accent);"></div>
+              </div>
+            </div>
+
+            <!-- Barra Meta -->
+            <div>
+              <div class="flex justify-between text-sm font-medium mb-1.5 tabular-nums">
+                <span class="text-muted">Costo con meta (<span class="lbl-targ-pct">3%</span>)</span>
+                <span id="chartDailyTargVal" class="font-bold text-main">$150</span>
+              </div>
+              <div class="w-full h-4 rounded-full overflow-hidden" style="background-color: var(--border-hairline);">
+                <div id="chartDailyTargBar" class="bar-fill h-full rounded-full" style="width: 15%; background-color: var(--warm);"></div>
+              </div>
+            </div>
+
+            <!-- Barra Ahorro -->
+            <div class="pt-2 border-t border-hairline">
+              <div class="flex justify-between text-sm font-semibold mb-1.5 tabular-nums">
+                <span class="text-brand">Dinero ahorrado cada día</span>
+                <span id="chartDailySaveVal" class="font-bold text-brand">$850</span>
+              </div>
+              <div class="w-full h-5 rounded-full overflow-hidden" style="background-color: var(--border-hairline);">
+                <div id="chartDailySaveBar" class="bar-fill h-full rounded-full" style="width: 85%; background-color: var(--brand);"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gráfica 2: Impacto Mensual (22 días) -->
+        <div class="bg-card rounded-xl p-6 sm:p-7 border border-hairline">
+          <div class="flex items-baseline justify-between mb-5">
+            <h3 class="font-editorial text-2xl sm:text-3xl font-semibold text-brand">Impacto Mensual</h3>
+            <span class="text-xs font-semibold uppercase tracking-wider text-warm">22 días laborables</span>
+          </div>
+
+          <div class="space-y-4">
+            <!-- Barra Hoy -->
+            <div>
+              <div class="flex justify-between text-sm font-medium mb-1.5 tabular-nums">
+                <span class="text-muted">Costo excedente hoy (<span class="lbl-curr-pct">20%</span>)</span>
+                <span id="chartMonthlyCurrVal" class="font-bold text-accent">$22.000</span>
+              </div>
+              <div class="w-full h-4 rounded-full overflow-hidden" style="background-color: var(--border-hairline);">
+                <div id="chartMonthlyCurrBar" class="bar-fill h-full rounded-full" style="width: 100%; background-color: var(--accent);"></div>
+              </div>
+            </div>
+
+            <!-- Barra Meta -->
+            <div>
+              <div class="flex justify-between text-sm font-medium mb-1.5 tabular-nums">
+                <span class="text-muted">Costo con meta (<span class="lbl-targ-pct">3%</span>)</span>
+                <span id="chartMonthlyTargVal" class="font-bold text-main">$3.300</span>
+              </div>
+              <div class="w-full h-4 rounded-full overflow-hidden" style="background-color: var(--border-hairline);">
+                <div id="chartMonthlyTargBar" class="bar-fill h-full rounded-full" style="width: 15%; background-color: var(--warm);"></div>
+              </div>
+            </div>
+
+            <!-- Barra Ahorro -->
+            <div class="pt-2 border-t border-hairline">
+              <div class="flex justify-between text-sm font-semibold mb-1.5 tabular-nums">
+                <span class="text-brand">Dinero ahorrado cada mes</span>
+                <span id="chartMonthlySaveVal" class="font-bold text-brand">$18.700</span>
+              </div>
+              <div class="w-full h-5 rounded-full overflow-hidden" style="background-color: var(--border-hairline);">
+                <div id="chartMonthlySaveBar" class="bar-fill h-full rounded-full" style="width: 85%; background-color: var(--brand);"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla dinámica: INDICADOR / HOY (% establecido) / META (% establecido) -->
+      <div class="reveal bg-card rounded-xl border border-hairline overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-base sm:text-lg">
+            <thead>
+              <tr class="border-b border-hairline bg-surface">
+                <th class="py-4 px-5 font-semibold text-sm uppercase tracking-wider text-brand">Indicador</th>
+                <th class="py-4 px-5 font-semibold text-sm uppercase tracking-wider text-accent text-right tabular-nums">
+                  Hoy (<span class="lbl-curr-pct">20%</span>)
+                </th>
+                <th class="py-4 px-5 font-semibold text-sm uppercase tracking-wider text-brand text-right tabular-nums">
+                  Meta (<span class="lbl-targ-pct">3%</span>)
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y tabular-nums" style="border-color: var(--border-hairline);">
+              <tr>
+                <td class="py-4 px-5 text-main font-medium">Platos de más al día</td>
+                <td id="tblCurrPlates" class="py-4 px-5 text-right font-semibold text-accent">500</td>
+                <td id="tblTargPlates" class="py-4 px-5 text-right text-main font-semibold">75</td>
+              </tr>
+              <tr>
+                <td class="py-4 px-5 text-main font-medium">Costo diario del excedente</td>
+                <td id="tblCurrDailyCost" class="py-4 px-5 text-right font-semibold text-accent">$1.000</td>
+                <td id="tblTargDailyCost" class="py-4 px-5 text-right text-main">$150</td>
+              </tr>
+              <tr>
+                <td class="py-4 px-5 text-main font-medium">Costo mensual (22 días)</td>
+                <td id="tblCurrMonthlyCost" class="py-4 px-5 text-right font-semibold text-accent">$22.000</td>
+                <td id="tblTargMonthlyCost" class="py-4 px-5 text-right text-main">$3.300</td>
+              </tr>
+              <tr class="bg-surface font-bold">
+                <td class="py-4 px-5 text-brand">Ahorro mensual estimado</td>
+                <td class="py-4 px-5 text-right text-muted">—</td>
+                <td id="tblMonthlySaving" class="py-4 px-5 text-right text-brand text-xl">$18.700</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Nota corta de estimaciones -->
+      <p class="reveal mt-5 text-sm sm:text-base text-muted leading-relaxed">
+        <strong class="text-main">Nota:</strong> Estas cifras son estimaciones basadas en los excedentes vistos en el recorrido (sobre 3.000 platos/día y 22 días/mes) para dimensionar el ahorro potencial. Los números exactos los validaremos en la etapa de <strong class="text-main">Medir</strong>.
+      </p>
+    </section>
+
+    <!-- =========================================================
+         SECCIÓN 3: CRONOGRAMA ESTIMADO (6 A 12 SEMANAS)
+         ========================================================= -->
+    <section id="cronograma" class="py-16 sm:py-20 border-b border-hairline">
+      <div class="reveal mb-10">
+        <p class="text-sm font-semibold uppercase tracking-[0.16em] text-warm mb-3">03 / Plazos de Trabajo</p>
+        <h2 class="font-editorial text-4xl sm:text-5xl font-semibold text-brand leading-tight">
+          Duración estimada: 6 a 12 semanas
+        </h2>
+      </div>
+
+      <!-- 3 Bloques de tiempo claros -->
+      <div class="reveal grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-surface rounded-xl p-7 border border-hairline">
+          <span class="inline-block text-sm font-bold uppercase tracking-wider px-3.5 py-1 rounded-full border border-hairline text-brand bg-main tabular-nums">
+            Semana 1
+          </span>
+          <h3 class="mt-4 font-editorial text-3xl sm:text-4xl font-semibold text-brand">Inicio</h3>
+          <p class="mt-2 text-base text-muted leading-snug">
+            Alineación de metas y arranque en planta con su equipo.
+          </p>
+          <div class="mt-6 w-full h-2 rounded-full overflow-hidden" style="background-color: var(--border-hairline);">
+            <div class="h-full rounded-full" style="width: 15%; background-color: var(--warm);"></div>
+          </div>
+        </div>
+
+        <div class="bg-surface rounded-xl p-7 border border-hairline">
+          <span class="inline-block text-sm font-bold uppercase tracking-wider px-3.5 py-1 rounded-full border border-hairline text-brand bg-main tabular-nums">
+            Semanas 2 a 5
+          </span>
+          <h3 class="mt-4 font-editorial text-3xl sm:text-4xl font-semibold text-brand">Diagnóstico</h3>
+          <p class="mt-2 text-base text-muted leading-snug">
+            Extracción de datos reales, cuantificación de fugas y causas raíz.
+          </p>
+          <div class="mt-6 w-full h-2 rounded-full overflow-hidden relative" style="background-color: var(--border-hairline);">
+            <div class="h-full rounded-full absolute" style="left: 15%; width: 42%; background-color: var(--accent);"></div>
+          </div>
+        </div>
+
+        <div class="bg-surface rounded-xl p-7 border border-hairline">
+          <span class="inline-block text-sm font-bold uppercase tracking-wider px-3.5 py-1 rounded-full border border-hairline text-brand bg-main tabular-nums">
+            Semanas 5 a 12
+          </span>
+          <h3 class="mt-4 font-editorial text-3xl sm:text-4xl font-semibold text-brand">Mejoras y Controles</h3>
+          <p class="mt-2 text-base text-muted leading-snug">
+            Planificación de soluciones sin costo extra y controles permanentes.
+          </p>
+          <div class="mt-6 w-full h-2 rounded-full overflow-hidden relative" style="background-color: var(--border-hairline);">
+            <div class="h-full rounded-full absolute" style="left: 55%; width: 45%; background-color: var(--brand);"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nota de flexibilidad -->
+      <div class="reveal mt-6 rounded-xl p-5 sm:p-6 border border-hairline bg-card">
+        <p class="text-base text-muted leading-snug">
+          <strong class="text-main">Nota de tiempos:</strong> Los plazos varían según la facilidad para extraer datos y ejecutar las mejoras. <strong class="text-main">Arrancamos rápido, pero con cautela para no pasar nada por alto.</strong>
+        </p>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         SECCIÓN 4: ESQUEMA DE PAGOS POR AVANCE (SIN CIFRAS)
+         ========================================================= -->
+    <section id="inversion" class="py-16 sm:py-20 border-b border-hairline">
+      <div class="reveal mb-10">
+        <p class="text-sm font-semibold uppercase tracking-[0.16em] text-warm mb-3">04 / Esquema de Pagos</p>
+        <h2 class="font-editorial text-4xl sm:text-5xl font-semibold text-brand leading-tight">
+          Tres abonos ligados a resultados
+        </h2>
+      </div>
+
+      <!-- 3 Tarjetas de abonos (solo estructura de división, sin montos) -->
+      <div class="reveal grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Abono 1 -->
+        <div class="bg-card rounded-xl p-7 border border-hairline flex flex-col justify-between">
+          <div>
+            <p class="text-sm font-semibold uppercase tracking-wider text-warm">Primer abono</p>
+            <h3 class="mt-3 font-editorial text-4xl sm:text-5xl font-semibold text-brand">
+              Al iniciar
+            </h3>
+            <p class="mt-4 text-base sm:text-lg text-muted leading-snug">
+              Inicio formal y definición del plan de trabajo en planta.
+            </p>
+          </div>
+          <p class="mt-6 pt-4 border-t border-hairline text-sm font-semibold text-main">
+            Etapa: Definir
+          </p>
+        </div>
+
+        <!-- Abono 2 -->
+        <div class="bg-surface rounded-xl p-7 border border-strong flex flex-col justify-between">
+          <div>
+            <p class="text-sm font-semibold uppercase tracking-wider text-accent">Segundo abono</p>
+            <h3 class="mt-3 font-editorial text-4xl sm:text-5xl font-semibold text-brand">
+              Al diagnosticar
+            </h3>
+            <p class="mt-4 text-base sm:text-lg text-muted leading-snug">
+              Entrega de números reales, fugas detectadas y causas raíz.
+            </p>
+          </div>
+          <p class="mt-6 pt-4 border-t border-hairline text-sm font-semibold text-main">
+            Etapas: Medir y Analizar
+          </p>
+        </div>
+
+        <!-- Abono 3 -->
+        <div class="bg-card rounded-xl p-7 border border-hairline flex flex-col justify-between">
+          <div>
+            <p class="text-sm font-semibold uppercase tracking-wider text-warm">Tercer abono</p>
+            <h3 class="mt-3 font-editorial text-4xl sm:text-5xl font-semibold text-brand">
+              Al cerrar
+            </h3>
+            <p class="mt-4 text-base sm:text-lg text-muted leading-snug">
+              Plan de mejoras sin costo extra y controles instalados.
+            </p>
+          </div>
+          <p class="mt-6 pt-4 border-t border-hairline text-sm font-semibold text-main">
+            Etapas: Mejorar y Controlar
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         SECCIÓN 5: FUTUROS PROYECTOS (UN PROYECTO A LA VEZ)
+         ========================================================= -->
+    <section id="futuro" class="py-16 sm:py-20">
+      <div class="reveal max-w-3xl">
+        <p class="text-sm font-semibold uppercase tracking-[0.16em] text-warm mb-3">05 / Visión a Futuro</p>
+        <h2 class="font-editorial text-4xl sm:text-5xl font-semibold text-brand leading-tight">
+          Un proyecto a la vez para atacar cada falla de frente
+        </h2>
+        <p class="mt-5 text-lg sm:text-xl text-muted leading-relaxed">
+          A medida que veamos resultados reales aquí, evaluaremos juntos los siguientes proyectos —como el <strong class="text-main">control de inventarios</strong> y otras áreas clave— sin distraer a su equipo.
+        </p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- =========================================================
+       PIE DE PÁGINA / FIRMA
+       ========================================================= -->
+  <footer class="border-t border-hairline bg-surface">
+    <div class="max-w-5xl mx-auto px-5 sm:px-8 py-12 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+      <div>
+        <p class="font-editorial text-3xl font-semibold text-brand">Rogelio Jeitani</p>
+        <p class="text-base text-muted mt-1">Consultoría en Mejora Continua y Optimización Operativa</p>
+      </div>
+      <div class="text-base text-muted sm:text-right">
+        <p class="text-sm uppercase tracking-wider text-warm font-semibold">Próximo paso</p>
+        <p class="text-main font-medium mt-0.5">Definir fecha de arranque — Semana 1</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- =========================================================
+       INTERACTIVIDAD LIGERA (CALCULADORA, GRÁFICAS, SCROLL, TEMA)
+       ========================================================= -->
+  <script>
+    const TOTAL_DAILY_PLATES = 3000;
+    const WORK_DAYS_PER_MONTH = 22;
+
+    function formatUSD(value) {
+      const rounded = Math.round(value);
+      return '$' + rounded.toLocaleString('es-ES');
+    }
+
+    function formatNumber(value) {
+      return Math.round(value).toLocaleString('es-ES');
+    }
+
+    function formatPct(value) {
+      return Number.isInteger(value) ? `${value}%` : `${value.toString().replace('.', ',')}%`;
+    }
+
+    function updateCalculator() {
+      try {
+        const inputCost = document.getElementById('inputCost');
+        const inputCurrentPct = document.getElementById('inputCurrentPct');
+        const inputTargetPct = document.getElementById('inputTargetPct');
+        if (!inputCost || !inputCurrentPct || !inputTargetPct) return;
+
+        const costPerPlate = Math.max(0, parseFloat(inputCost.value) || 0);
+        const currentPct = Math.max(0, parseFloat(inputCurrentPct.value) || 0);
+        const targetPct = Math.max(0, parseFloat(inputTargetPct.value) || 0);
+
+        // Cálculo base: 3.000 platos producidos hoy incluyen el % de excedente actual
+        const baseDemand = TOTAL_DAILY_PLATES / (1 + currentPct / 100);
+        const currentSurplusPlates = TOTAL_DAILY_PLATES - baseDemand;
+        const targetSurplusPlates = baseDemand * (targetPct / 100);
+        const savedPlatesPerDay = Math.max(0, currentSurplusPlates - targetSurplusPlates);
+
+        const currentDailyCost = currentSurplusPlates * costPerPlate;
+        const targetDailyCost = targetSurplusPlates * costPerPlate;
+        const dailySaving = Math.max(0, currentDailyCost - targetDailyCost);
+
+        const currentMonthlyCost = currentDailyCost * WORK_DAYS_PER_MONTH;
+        const targetMonthlyCost = targetDailyCost * WORK_DAYS_PER_MONTH;
+        const monthlySaving = dailySaving * WORK_DAYS_PER_MONTH;
+
+        // Actualizar etiquetas de porcentaje en gráficas y tabla
+        document.querySelectorAll('.lbl-curr-pct').forEach((el) => {
+          el.textContent = formatPct(currentPct);
+        });
+        document.querySelectorAll('.lbl-targ-pct').forEach((el) => {
+          el.textContent = formatPct(targetPct);
+        });
+
+        // Información de demanda base y badge de escenario
+        const baseDemandInfo = document.getElementById('baseDemandInfo');
+        if (baseDemandInfo) {
+          baseDemandInfo.innerHTML =
+            `Pedidos base estimados: <strong class="text-main">${formatNumber(baseDemand)} platos/día</strong>`;
+        }
+
+        const badge = document.getElementById('scenarioBadge');
+        if (badge) {
+          if (targetPct >= currentPct) {
+            badge.textContent = 'La meta objetivo debe ser menor al excedente actual para generar ahorro.';
+          } else if (targetPct === 3) {
+            badge.textContent = 'Escenario activo: Meta óptima del 3% — Máxima eficiencia con respaldo seguro.';
+          } else if (targetPct === 8) {
+            badge.textContent = 'Escenario activo: Meta del 8% — Opción holgada y conservadora con alto impacto inmediato.';
+          } else {
+            badge.textContent = `Escenario personalizado: Reducir el excedente de ${formatPct(currentPct)} a ${formatPct(targetPct)}.`;
+          }
+        }
+
+        // Actualizar estado visual de botones rápidos (3% y 8%)
+        const btnMeta3 = document.getElementById('btnMeta3');
+        const btnMeta8 = document.getElementById('btnMeta8');
+        if (btnMeta3) btnMeta3.setAttribute('aria-pressed', targetPct === 3 ? 'true' : 'false');
+        if (btnMeta8) btnMeta8.setAttribute('aria-pressed', targetPct === 8 ? 'true' : 'false');
+
+        // Tarjetas gigantes de ahorro
+        document.getElementById('savingDaily').innerHTML =
+          `${formatUSD(dailySaving)} <span class="text-2xl font-sans font-normal text-muted">/ día</span>`;
+        document.getElementById('savingMonthly').innerHTML =
+          `${formatUSD(monthlySaving)} <span class="text-2xl font-sans font-normal text-muted">/ mes</span>`;
+
+        document.getElementById('savingDailyDetail').innerHTML =
+          `<strong class="text-main">${formatNumber(savedPlatesPerDay)} platos menos</strong> de sobrante cada día.`;
+        document.getElementById('savingMonthlyDetail').innerHTML =
+          `El costo del excedente baja de <strong class="text-main">${formatUSD(currentMonthlyCost)}</strong> a <strong class="text-main">${formatUSD(targetMonthlyCost)}</strong>.`;
+
+        // Gráficas de barras dinámicas (escala relativa al valor máximo)
+        const maxDaily = Math.max(currentDailyCost, targetDailyCost, 1);
+        const currWidth = Math.min(100, (currentDailyCost / maxDaily) * 100);
+        const targWidth = Math.min(100, (targetDailyCost / maxDaily) * 100);
+        const saveWidth = Math.min(100, (dailySaving / maxDaily) * 100);
+
+        document.getElementById('chartDailyCurrVal').textContent = formatUSD(currentDailyCost);
+        document.getElementById('chartDailyTargVal').textContent = formatUSD(targetDailyCost);
+        document.getElementById('chartDailySaveVal').textContent = formatUSD(dailySaving);
+        document.getElementById('chartDailyCurrBar').style.width = `${currWidth}%`;
+        document.getElementById('chartDailyTargBar').style.width = `${targWidth}%`;
+        document.getElementById('chartDailySaveBar').style.width = `${saveWidth}%`;
+
+        document.getElementById('chartMonthlyCurrVal').textContent = formatUSD(currentMonthlyCost);
+        document.getElementById('chartMonthlyTargVal').textContent = formatUSD(targetMonthlyCost);
+        document.getElementById('chartMonthlySaveVal').textContent = formatUSD(monthlySaving);
+        document.getElementById('chartMonthlyCurrBar').style.width = `${currWidth}%`;
+        document.getElementById('chartMonthlyTargBar').style.width = `${targWidth}%`;
+        document.getElementById('chartMonthlySaveBar').style.width = `${saveWidth}%`;
+
+        // Tabla dinámica
+        document.getElementById('tblCurrPlates').textContent = formatNumber(currentSurplusPlates);
+        document.getElementById('tblTargPlates').textContent = formatNumber(targetSurplusPlates);
+        document.getElementById('tblCurrDailyCost').textContent = formatUSD(currentDailyCost);
+        document.getElementById('tblTargDailyCost').textContent = formatUSD(targetDailyCost);
+        document.getElementById('tblCurrMonthlyCost').textContent = formatUSD(currentMonthlyCost);
+        document.getElementById('tblTargMonthlyCost').textContent = formatUSD(targetMonthlyCost);
+        document.getElementById('tblMonthlySaving').textContent = formatUSD(monthlySaving);
+      } catch (err) {
+        console.error('Error al actualizar la calculadora:', err);
+      }
+    }
+
+    function applyPreset(targetPct) {
+      const inputTargetPct = document.getElementById('inputTargetPct');
+      const rangeTargetPct = document.getElementById('rangeTargetPct');
+      if (inputTargetPct) inputTargetPct.value = targetPct;
+      if (rangeTargetPct) rangeTargetPct.value = targetPct;
+      updateCalculator();
+    }
+
+    // Inicialización segura al cargar el DOM
+    document.addEventListener('DOMContentLoaded', () => {
+      function bindControl(numId, rangeId) {
+        const numEl = document.getElementById(numId);
+        const rangeEl = document.getElementById(rangeId);
+        if (!numEl || !rangeEl) return;
+
+        numEl.addEventListener('input', () => {
+          const val = parseFloat(numEl.value);
+          if (!isNaN(val)) {
+            rangeEl.value = Math.min(parseFloat(rangeEl.max), Math.max(parseFloat(rangeEl.min), val));
+          }
+          updateCalculator();
+        });
+
+        rangeEl.addEventListener('input', () => {
+          numEl.value = rangeEl.value;
+          updateCalculator();
+        });
+      }
+
+      bindControl('inputCost', 'rangeCost');
+      bindControl('inputCurrentPct', 'rangeCurrentPct');
+      bindControl('inputTargetPct', 'rangeTargetPct');
+      updateCalculator();
+
+      // Animación suave de aparición al hacer scroll
+      const revealElements = document.querySelectorAll('.reveal');
+      if ('IntersectionObserver' in window) {
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+                observer.unobserve(entry.target);
+              }
+            });
+          },
+          { threshold: 0.12 }
+        );
+        revealElements.forEach((el) => observer.observe(el));
+      } else {
+        revealElements.forEach((el) => el.classList.add('is-visible'));
+      }
+
+      // Cambio entre paleta editorial clara y modo nocturno
+      const themeToggleBtn = document.getElementById('themeToggleBtn');
+      const themeLabel = document.getElementById('themeLabel');
+      if (themeToggleBtn && themeLabel) {
+        themeToggleBtn.addEventListener('click', () => {
+          const isDark = document.documentElement.classList.toggle('dark-theme');
+          themeLabel.textContent = isDark ? 'Modo claro' : 'Modo nocturno';
+        });
+      }
+    });
+  </script>
+</body>
+</html>
